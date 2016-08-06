@@ -153,6 +153,7 @@ class object:
 			self.y += dy
 			
 	#approximate a straight line path using "vector mathematics"
+	#note: this algorithm gets blocked a lot on corners.
 	def move_towards(self, target_x, target_y):
 		#get vector, distance
 		dx = target_x - self.x 
@@ -163,6 +164,42 @@ class object:
 		dx = int(round(dx / distance))
 		dy = int(round(dy / distance))
 		self.move(dx, dy)
+		
+	#move to dest using A* pathfinding
+	def move_astar(self, target):
+		fov = libtcod.map_new(MAP_WIDTH, MAP_HEIGHT)
+		
+		#set move, sight blockers
+		for y1 in range(MAP_HEIGHT):
+			for x1 in range(MAP_WIDTH):
+				libtcod.map_set_properties(fov, x1, y1, not map[x1][y1].sight_blocker, not map[x1][y1].move_blocker)
+			
+		#Treat tiles occupied by monsters as move blocked
+		for obj in objects:
+			if obj.move_blocker and obj != self and obj != target:
+				libtcod.map_set_properties(fov, obj.x, obj.y, True, False)
+				
+		#Allocate path. Use roguelike geometry (diagonals = cardinals).
+		my_path = libtcod.path_new_using_map(fov, 1.0)
+		
+		#Compute path
+		libtcod.path_compute(my_path, self.x, self.y, target.x, target.y)
+		
+		#Confirm path was found, and is short, then take step.
+		if not libtcod.path_is_empty(my_path) and libtcod.path_size(my_path) < TORCH_RADIUS * 3:
+			x, y = libtcod.path_walk(my_path, True)
+			if x or y:
+				#self.move takes dx, dy so don't use that
+				self.x = x
+				self.y = y
+		#If the path is bad, take direct path to player.
+		#This happens if, say, player is behind a monster in a corridor.
+		else:
+			self.move_towards(target.x, target.y)
+			
+		#Deallocate path memory
+		libtcod.path_delete(my_path)
+			
 		
 	#distance to object
 	def distance_to(self, other):
@@ -432,7 +469,7 @@ class BasicMonster:
 		if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
 			#close on distant player
 			if monster.distance_to(player) >= 2:
-				monster.move_towards(player.x, player.y)
+				monster.move_astar(player)
 			#kill adjacent, alive player
 			elif player.fighter.hp > 0:
 				monster.fighter.attack(player)
@@ -456,7 +493,7 @@ class ConfusedMonster:
 			message('The ' + self.owner.name + ' is no longer confused!', libtcod.red)
 	
 #############################
-# player_death(player): handle player death
+# player_death(player): handle player death (lose game)
 #############################
 
 def player_death(player):
@@ -469,7 +506,7 @@ def player_death(player):
 	player.color = libtcod.dark_red
 
 #############################
-# player_death(player): handle player death
+# boss_death(player): handle boss death (wins game atm)
 #############################
 
 def boss_death(boss):
