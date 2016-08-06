@@ -158,6 +158,7 @@ class object:
 		#get vector, distance
 		dx = target_x - self.x 
 		dy = target_y - self.y 
+		#using circledist here because it's prettier and has little impact
 		distance = math.sqrt(dx ** 2 + dy ** 2)
 		
 		#figure out what grid-locked move approximates a step along the vector?
@@ -201,17 +202,17 @@ class object:
 		libtcod.path_delete(my_path)
 			
 		
-	#distance to object
+	#Distance to object using roguelike geometry.
 	def distance_to(self, other):
-		dx = other.x - self.x
-		dy = other.y - self.y 
-		return math.sqrt(dx ** 2 + dy ** 2)
+		return self.distance(other.x, other.y)
 		
-	#distance to tile
-	#BUG uses circledist and not squaredist
-	#(squaredist is just max of xdist and ydist)
+	#Distance to tile using roguelike geometry.
+	#Squares are circles. Diagonals are not longer than cardinals.
+	#In a world where circles are squares, dist is just greater of x or y.
 	def distance(self, x, y):
-		return math.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
+		dx = x - self.x
+		dy = y - self.y 
+		return max( abs(dx), abs(dy) )
 		
 	def draw(self):
 		#draw this object at its current map position
