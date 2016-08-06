@@ -146,11 +146,14 @@ class object:
 			self.item = Item()
 			self.item.owner = self
 	
+	#move by the given amount if not blocked, returning True if it worked
 	def move(self, dx, dy):
-		#move by the given amount if not blocked
 		if not move_blocker(self.x + dx, self.y + dy):
 			self.x += dx
 			self.y += dy
+			return True
+		else:
+			return False
 			
 	#approximate a straight line path using "vector mathematics"
 	#note: this algorithm gets blocked a lot on corners.
@@ -207,8 +210,7 @@ class object:
 		return self.distance(other.x, other.y)
 		
 	#Distance to tile using roguelike geometry.
-	#Squares are circles. Diagonals are not longer than cardinals.
-	#In a world where circles are squares, dist is just greater of x or y.
+	#In a world where squares are circles, dist is just greater of x or y.
 	def distance(self, x, y):
 		dx = x - self.x
 		dy = y - self.y 
@@ -978,21 +980,21 @@ def handle_keys():
 	if game_state == 'playing':
 		#move keys in clockwise order, starting with up/north
 		if (key.vk == libtcod.KEY_UP or key.vk == libtcod.KEY_KP8):
-			player_move_or_attack(0, -1)
+			return player_move_or_attack(0, -1)
 		elif (key.vk == libtcod.KEY_PAGEUP or key.vk == libtcod.KEY_KP9):
-			player_move_or_attack(1, -1)
+			return player_move_or_attack(1, -1)
 		elif (key.vk == libtcod.KEY_RIGHT or key.vk == libtcod.KEY_KP6):
-			player_move_or_attack(1, 0)
+			return player_move_or_attack(1, 0)
 		elif (key.vk == libtcod.KEY_PAGEDOWN or key.vk == libtcod.KEY_KP3):
-			player_move_or_attack(1, 1)
+			return player_move_or_attack(1, 1)
 		elif (key.vk == libtcod.KEY_DOWN or key.vk == libtcod.KEY_KP2):
-			player_move_or_attack(0, 1)
+			return player_move_or_attack(0, 1)
 		elif (key.vk == libtcod.KEY_END or key.vk == libtcod.KEY_KP1):
-			player_move_or_attack(-1,1)
+			return player_move_or_attack(-1,1)
 		elif (key.vk == libtcod.KEY_LEFT or key.vk == libtcod.KEY_KP4):
-			player_move_or_attack(-1, 0)
+			return player_move_or_attack(-1, 0)
 		elif (key.vk == libtcod.KEY_HOME or key.vk == libtcod.KEY_KP7):
-			player_move_or_attack(-1, -1)
+			return player_move_or_attack(-1, -1)
 		elif key.vk == libtcod.KEY_KP5:
 			pass # waits by preventing the return of 'didnt-take-turn'
 		else:
@@ -1101,8 +1103,10 @@ def player_move_or_attack(dx, dy):
 	if target is not None:
 		player.fighter.attack(target)
 	else:
-		player.move(dx, dy)
-		fov_recompute = True
+		if player.move(dx, dy):
+			fov_recompute = True
+		else:
+			return 'didnt-take-turn'
 		
 #####################################
 # save_game(): saves current game state while playing
