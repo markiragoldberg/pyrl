@@ -851,11 +851,11 @@ def render_all():
 					libtcod.console_put_char_ex(console, x, y, ".", color_light_ground, libtcod.BKGND_SET)
 				map[x][y].explored = True
 				
+	#quick fix to "item is drawn instead of the monster standing on it" issue
+	objects.sort(key = lambda x: x.move_blocker)
+				
 	for object in objects:
-		if object != player:
-			object.draw()
-	#always draw player last
-	player.draw()
+		object.draw()
 				
 	libtcod.console_blit(console, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
 	
