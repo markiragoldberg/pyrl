@@ -968,6 +968,8 @@ def handle_keys():
 	global fov_recompute
 	global game_state
 	
+	player_action = False
+	
 	if key.vk == libtcod.KEY_ENTER and key.lalt:
 		#Alt + Enter: toggle fullscreen
 		libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen())
@@ -980,23 +982,23 @@ def handle_keys():
 	if game_state == 'playing':
 		#move keys in clockwise order, starting with up/north
 		if (key.vk == libtcod.KEY_UP or key.vk == libtcod.KEY_KP8):
-			return player_move_or_attack(0, -1)
+			player_action = player_move_or_attack(0, -1)
 		elif (key.vk == libtcod.KEY_PAGEUP or key.vk == libtcod.KEY_KP9):
-			return player_move_or_attack(1, -1)
+			player_action = player_move_or_attack(1, -1)
 		elif (key.vk == libtcod.KEY_RIGHT or key.vk == libtcod.KEY_KP6):
-			return player_move_or_attack(1, 0)
+			player_action = player_move_or_attack(1, 0)
 		elif (key.vk == libtcod.KEY_PAGEDOWN or key.vk == libtcod.KEY_KP3):
-			return player_move_or_attack(1, 1)
+			player_action = player_move_or_attack(1, 1)
 		elif (key.vk == libtcod.KEY_DOWN or key.vk == libtcod.KEY_KP2):
-			return player_move_or_attack(0, 1)
+			player_action = player_move_or_attack(0, 1)
 		elif (key.vk == libtcod.KEY_END or key.vk == libtcod.KEY_KP1):
-			return player_move_or_attack(-1,1)
+			player_action = player_move_or_attack(-1,1)
 		elif (key.vk == libtcod.KEY_LEFT or key.vk == libtcod.KEY_KP4):
-			return player_move_or_attack(-1, 0)
+			player_action = player_move_or_attack(-1, 0)
 		elif (key.vk == libtcod.KEY_HOME or key.vk == libtcod.KEY_KP7):
-			return player_move_or_attack(-1, -1)
+			player_action = player_move_or_attack(-1, -1)
 		elif key.vk == libtcod.KEY_KP5:
-			pass # waits by preventing the return of 'didnt-take-turn'
+			player_action = True
 		else:
 			key_char = chr(key.c)
 			
@@ -1006,12 +1008,14 @@ def handle_keys():
 				for object in objects:
 					if object.x == player.x and object.y == player.y and object.item:
 						object.item.pick_up()
+						player_action = True
 						break
 			# i - view inventory and possibly use an item
 			if key_char == 'i':
 				chosen_item = inventory_menu('Press the key next to an item to use it, or any other key to cancel.\n')
 				if chosen_item is not None:
 					chosen_item.use()
+					player_action = True
 			# c - view player's character screen
 			if key_char == 'c':
 				level_up_xp = LEVEL_UP_BASE + player.level * LEVEL_UP_FACTOR
@@ -1022,12 +1026,15 @@ def handle_keys():
 				chosen_item = inventory_menu('Press the key next to an item to drop it, or any other key to cancel.\n')
 				if chosen_item is not None:
 					chosen_item.drop()
+					player_action = True
 			# < - go down a level
 			#not sure why tutorial represents down as '<'
 			if key_char == '<':
 				#go up(?) stairs
 				if (stairs is not None) and stairs.x == player.x and stairs.y == player.y:
 					next_level()
+					
+		if player_action == False:
 			return 'didnt-take-turn'
 			
 #############################
@@ -1090,6 +1097,7 @@ def target_monster(max_range=None):
 def player_move_or_attack(dx, dy):
 	global fov_recompute
 	
+	moved_or_atook = False
 	x = player.x + dx
 	y = player.y + dy
 	
@@ -1102,11 +1110,12 @@ def player_move_or_attack(dx, dy):
 			
 	if target is not None:
 		player.fighter.attack(target)
-	else:
-		if player.move(dx, dy):
-			fov_recompute = True
-		else:
-			return 'didnt-take-turn'
+		moved_or_atook = True
+	elif player.move(dx, dy) == True:
+		fov_recompute = True
+		moved_or_atook = True
+	
+	return moved_or_atook
 		
 #####################################
 # save_game(): saves current game state while playing
