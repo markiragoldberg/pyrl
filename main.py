@@ -38,6 +38,8 @@ LEVEL_UP_BASE = 200
 #additional xp required to level up for each previous level gained
 LEVEL_UP_FACTOR = 150
 
+TURNS_MONSTERS_CHASE_PLAYER_AFTER_LOSING_CONTACT = 5
+
 MAP_WIDTH = 80
 MAP_HEIGHT = 43
 
@@ -466,10 +468,20 @@ def get_all_equipped(obj):
 ############################
 
 class BasicMonster:
+	def __init__(self):
+		self.turns_to_chase_player = 0
+		
 	def take_turn(self):
 		monster = self.owner
 		#simple reciprocal fov by mooching off player's fov_map
+		
+		#reset chase timer if monster can see the player
 		if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
+			self.turns_to_chase_player = TURNS_MONSTERS_CHASE_PLAYER_AFTER_LOSING_CONTACT + 1
+			
+		#chase the player if the chase timer is nonzero (and decrement timer too)
+		if self.turns_to_chase_player > 0:
+			self.turns_to_chase_player -= 1
 			#close on distant player
 			if monster.distance_to(player) >= 2:
 				monster.move_astar(player)
