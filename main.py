@@ -39,6 +39,7 @@ LEVEL_UP_BASE = 200
 LEVEL_UP_FACTOR = 150
 
 TURNS_MONSTERS_CHASE_PLAYER_AFTER_LOSING_CONTACT = 5
+SHOUT_RADIUS = 7
 
 MAP_WIDTH = 80
 MAP_HEIGHT = 43
@@ -477,7 +478,13 @@ class BasicMonster:
 		
 		#reset chase timer if monster can see the player
 		if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
-			self.turns_to_chase_player = TURNS_MONSTERS_CHASE_PLAYER_AFTER_LOSING_CONTACT + 1
+			#alert nearby monsters if monster wasn't already alert
+			if self.turns_to_chase_player == 0:
+				message("The " + self.owner.name + " shouts!", libtcod.red)
+				for object in objects:
+					if object != monster and object.distance(monster.x, monster.y) <= SHOUT_RADIUS and object.ai:
+						object.ai.turns_to_chase_player = TURNS_MONSTERS_CHASE_PLAYER_AFTER_LOSING_CONTACT
+			self.turns_to_chase_player = TURNS_MONSTERS_CHASE_PLAYER_AFTER_LOSING_CONTACT
 			
 		#chase the player if the chase timer is nonzero (and decrement timer too)
 		if self.turns_to_chase_player > 0:
