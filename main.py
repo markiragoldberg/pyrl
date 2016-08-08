@@ -38,8 +38,15 @@ LEVEL_UP_BASE = 200
 #additional xp required to level up for each previous level gained
 LEVEL_UP_FACTOR = 150
 
+#Maximum pth length a monster will tolerate when using A* to chase the player
+#Higher values may lead to extreme detours or monsters forgetting where they're going.
+#Conversely, lower values may make it hard for distant monsters to chase the player.
+#Really low values will result in monsters ignoring obvious flanking routes.
+MAX_ASTAR_PATH_LENGTH = 20
+
 TURNS_MONSTERS_CHASE_PLAYER_AFTER_LOSING_CONTACT = 5
 SHOUT_RADIUS = 7
+
 
 MAP_WIDTH = 80
 MAP_HEIGHT = 43
@@ -188,14 +195,14 @@ class object:
 						dy = 0
 						dx = -1 if distx < 0 else 1
 						self.move(dx,dy)
-			elif abs(dx) > abs(dy):
+			elif abs(dx) > abs(dy) and disty != 0:
 				#x-dir alone didn't work, so try adding a y-component
 				dy = -1 if disty < 0 else 1
 				if self.move(dx,dy) != True:
 					#diag didn't work, so remove the x-component
 					dx = 0
 					self.move(dx,dy)
-			else:
+			elif abs(dy) > abs(dx) and distx != 0:
 				#as above, but with x and y reversed
 				dx = -1 if distx < 0 else 1
 				if self.move(dx,dy) != True:
@@ -223,7 +230,7 @@ class object:
 		libtcod.path_compute(my_path, self.x, self.y, target.x, target.y)
 		
 		#Confirm path was found, and is short, then take step.
-		if not libtcod.path_is_empty(my_path) and libtcod.path_size(my_path) < TORCH_RADIUS * 3:
+		if not libtcod.path_is_empty(my_path) and libtcod.path_size(my_path) < MAX_ASTAR_PATH_LENGTH:
 			x, y = libtcod.path_walk(my_path, True)
 			if x or y:
 				#self.move takes dx, dy so don't use that
