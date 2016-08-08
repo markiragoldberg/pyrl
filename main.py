@@ -159,19 +159,49 @@ class object:
 			return False
 			
 	#approximate a straight line path using "vector mathematics"
-	#note: this algorithm gets blocked a lot on corners.
+	#now able to maneuver around trivial obstacles, like corners.
 	def move_towards(self, target_x, target_y):
 		#get vector, distance
-		dx = target_x - self.x 
-		dy = target_y - self.y 
+		distx = target_x - self.x 
+		disty = target_y - self.y 
 		#using circledist here because it's prettier and has little impact
-		distance = math.sqrt(dx ** 2 + dy ** 2)
+		distance = math.sqrt(distx ** 2 + disty ** 2)
 		
 		#figure out what grid-locked move approximates a step along the vector?
-		dx = int(round(dx / distance))
-		dy = int(round(dy / distance))
-		self.move(dx, dy)
+		dx = int(round(distx / distance))
+		dy = int(round(disty / distance))
 		
+		#try alternative moves if the direct approach doesn't work
+		if self.move(dx, dy) != True:
+			if abs(dx) == abs(dy):
+				#diagonal didn't work, so try moving only along the more distant axis
+				#if that doesn't work, try the other way
+				if abs(distx) > abs(disty):
+					dy = 0
+					if self.move(dx,dy) != True:
+						dx = 0
+						dy = -1 if disty < 0 else 1
+						self.move(dx,dy)
+				else:
+					dx = 0
+					if self.move(dx,dy) != True:
+						dy = 0
+						dx = -1 if distx < 0 else 1
+						self.move(dx,dy)
+			elif abs(dx) > abs(dy):
+				#x-dir alone didn't work, so try adding a y-component
+				dy = -1 if disty < 0 else 1
+				if self.move(dx,dy) != True:
+					#diag didn't work, so remove the x-component
+					dx = 0
+					self.move(dx,dy)
+			else:
+				#as above, but with x and y reversed
+				dx = -1 if distx < 0 else 1
+				if self.move(dx,dy) != True:
+					dy = 0
+					self.move(dx,dy)
+	
 	#move to dest using A* pathfinding
 	def move_astar(self, target):
 		fov = libtcod.map_new(MAP_WIDTH, MAP_HEIGHT)
