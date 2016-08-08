@@ -1231,7 +1231,7 @@ def new_game():
 	game_state = 'playing'
 	
 	#make the player
-	fighter_component = Fighter(hp = 100, defense = 1, power = 2, xp = 0, death_function = player_death)
+	fighter_component = Fighter(hp = 50, defense = 1, power = 2, xp = 0, death_function = player_death)
 	player = object(0, 0, '@', 'player', libtcod.white, move_blocker = True, fighter = fighter_component)
 	player.level = 1
 	
