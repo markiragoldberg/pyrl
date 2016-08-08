@@ -831,6 +831,8 @@ def next_level():
 	dungeon_level += 1
 	make_map()
 	initialize_fov()
+	#this is a good time to autosave, in case of a fatal bug
+	save_game()
 	
 ########################################
 # check_level_up(): increase the player's character level if eligible
