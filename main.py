@@ -282,11 +282,12 @@ class object:
 ###########################
 
 class Fighter:
-	def __init__(self, hp, defense, power, xp, death_function=None):
+	def __init__(self, hp, defense, power, xp, ranged = 0, death_function=None):
 		self.base_max_hp = hp
 		self.hp = hp
 		self.base_defense = defense
 		self.base_power = power
+		self.base_ranged = ranged
 		self.xp = xp
 		self.death_function = death_function
 		
@@ -305,6 +306,11 @@ class Fighter:
 	def defense(self):
 		bonus = sum(equipment.defense_bonus for equipment in get_all_equipped(self.owner))
 		return self.base_defense + bonus
+		
+	@property
+	def ranged(self):
+		#bonus = items don't give ranged bonuses yet
+		return self.base_ranged# + bonus
 		
 	def take_damage(self, damage):
 		if damage > 0:
@@ -326,6 +332,17 @@ class Fighter:
 			target.fighter.take_damage(damage)
 		else:
 			message(self.owner.name.capitalize() + ' attacks ' + target.name + ' to no effect.')
+			
+	def shoot(self, target):
+		#TODO: should probably animate this to identify the shooter :/
+		damage = self.ranged - target.fighter.defense
+		
+		if damage > 0:
+			message(self.owner.name.capitalize() + ' shoots ' + target.name + ' for ' + str(damage) + ' hit points!')
+			target.fighter.take_damage(damage)
+		else:
+			message(self.owner.name.capitalize() + ' shoots ' + target.name + ' to no effect.')
+		
 			
 	def heal(self, amount):
 		self.hp += amount
@@ -511,10 +528,12 @@ class BasicMonster:
 		
 	def take_turn(self):
 		monster = self.owner
+		
 		#simple reciprocal fov by mooching off player's fov_map
+		can_see_player = libtcod.map_is_in_fov(fov_map, monster.x, monster.y)
 		
 		#reset chase timer if monster can see the player
-		if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
+		if can_see_player:
 			#alert nearby monsters if monster wasn't already alert
 			if self.turns_to_chase_player == 0:
 				message("The " + self.owner.name + " shouts!", libtcod.red)
@@ -528,7 +547,10 @@ class BasicMonster:
 			self.turns_to_chase_player -= 1
 			#close on distant player
 			if monster.distance_to(player) >= 2:
-				monster.move_astar(player)
+				if monster.fighter.ranged and can_see_player:
+					monster.fighter.shoot(player)
+				else:
+					monster.move_astar(player)
 			#kill adjacent, alive player
 			elif player.fighter.hp > 0:
 				monster.fighter.attack(player)
@@ -663,6 +685,7 @@ def place_objects(room):
 	monster_chances['orc'] = 80 #orcs always have 80 chances
 	#15 troll chances at dungeon level 3, 30 chances at dlvl 5, etc.
 	monster_chances['troll'] = from_dungeon_level([[15, 3], [30, 5], [60, 7]])
+	monster_chances['orc archer'] = from_dungeon_level([[20, 4], [40, 6], [80, 8]])
 	
 	#item spawning rules
 	max_items = from_dungeon_level([[1, 1], [2, 4]])
@@ -691,7 +714,14 @@ def place_objects(room):
 			elif monster_roll == 'troll':
 				fighter_component = Fighter(hp = 30, defense = 2, power = 8, xp = 100, death_function = monster_death)
 				ai_component = BasicMonster()
+				
 				monster = object(x, y, 'T', 'troll', libtcod.darker_green, move_blocker = True, fighter = fighter_component, ai = ai_component)
+			elif monster_roll == 'orc archer':
+				fighter_component = Fighter(hp = 15, defense = 0, power = 2, ranged = 4, xp = 35, death_function = monster_death)
+				ai_component = BasicMonster()
+			
+				monster = object(x, y, 'o', 'orc archer', libtcod.light_green, move_blocker = True, fighter = fighter_component, ai = ai_component)
+				
 			
 			objects.append(monster)
 	
